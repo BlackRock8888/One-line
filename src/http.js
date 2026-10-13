@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { Room, RoomError } from './room.js';
 const files = {'/':'index.html','/index.html':'index.html','/style.css':'style.css','/app.js':'app.js','/voice.js':'voice.js','/fox.svg':'fox.svg','/fox-neon.webp':'fox-neon.webp','/fonts/manrope-variable.ttf':'fonts/manrope-variable.ttf','/fonts/instrument-serif-italic.ttf':'fonts/instrument-serif-italic.ttf'};
+files['/telegram.js'] = 'telegram.js';
 const types = {html:'text/html',css:'text/css',js:'text/javascript',svg:'image/svg+xml',webp:'image/webp',ttf:'font/ttf'};
 export function createApp({ room = new Room(), iceServers = [], getIce = () => ({iceServers}) } = {}) {
   const attempts = new Map();

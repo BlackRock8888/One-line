@@ -1,6 +1,10 @@
 @font-face{font-family:Manrope;src:url('/fonts/manrope-variable.ttf') format('truetype');font-weight:200 800;font-style:normal;font-display:swap}
 @font-face{font-family:'Instrument Serif';src:url('/fonts/instrument-serif-italic.ttf') format('truetype');font-weight:400;font-style:italic;font-display:swap}
 :root{color-scheme:dark;font-family:Manrope,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#05060b;color:#f1eff8;font-synthesis:none;--muted:#a8a6bb;--fine:#818093;--line:#ffffff12;--accent:#b2acf4}
+html{scroll-padding-bottom:env(safe-area-inset-bottom,0px)}
+body{padding-left:max(env(safe-area-inset-left,0px),var(--telegram-left,0px));padding-right:max(env(safe-area-inset-right,0px),var(--telegram-right,0px))}
+body.telegram-app{padding-top:var(--telegram-top,0px);padding-bottom:max(env(safe-area-inset-bottom,0px),var(--telegram-bottom,0px))}
+body.telegram-app main{min-height:calc(var(--app-height,100svh) - var(--telegram-top,0px) - var(--telegram-bottom,0px))}
 *{box-sizing:border-box}body{margin:0;min-width:320px}button,a{-webkit-tap-highlight-color:transparent}a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer;min-height:48px}button:focus-visible,a:focus-visible{outline:2px solid #70e5ff;outline-offset:5px}[hidden]{display:none!important}
 .aurora{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:-1}.aurora:before{content:'';position:absolute;inset:-30%;background:radial-gradient(ellipse at 32% 35%,#4334a14d,transparent 36%),radial-gradient(ellipse at 69% 48%,#185b8540,transparent 36%),radial-gradient(ellipse at 48% 70%,#6522a62b,transparent 34%);filter:blur(48px);animation:flow 22s ease-in-out infinite alternate}.aurora:after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,#05060b 2%,transparent 65%)}
 main{max-width:1280px;min-height:100svh;margin:auto;padding:38px 64px 28px;display:flex;flex-direction:column}.site-header{display:flex;justify-content:space-between;align-items:center;gap:20px}.brand{display:inline-flex;align-items:center;gap:12px;font-size:17px;letter-spacing:-.065em;font-weight:550}.brand strong{font-weight:750}.brand-period{color:#ad9df4}.brand-mark{width:30px;height:30px;color:#c3b6ff}.edition{display:flex;align-items:center;gap:12px;color:var(--fine);font-size:11px;letter-spacing:.02em}.edition-line{width:26px;height:1px;background:#6c618b}
@@ -20,3 +24,20 @@ body.in-room .hero .eyebrow{color:#b8d5d2}body.in-room .status-dot{background:#9
 @media(max-width:640px) and (max-height:700px){.experience{padding-top:24px;gap:20px}.hero h1{font-size:48px;margin:12px 0}.hero h1 br{display:none}.hero h1 em{display:inline;font-size:1.12em;margin-left:5px}.intro{font-size:12px}.intro br{display:none}.principles{display:none}.identity{padding:12px 0}.avatar-stage{width:112px;height:112px}.avatar{width:100px;height:100px}.avatar img{width:92px;height:92px}.identity-tag{display:none}.identity-name{margin-top:6px}.room-card{padding:15px}.caption{margin-top:10px}.status-line{margin-top:13px;padding-top:10px}}
 body.in-room .hero .intro,body.in-room .hero .principles{display:none}
 @media(max-width:640px){body.in-room .experience{margin:auto;gap:24px}body.in-room h1{font-size:48px;margin:16px 0 0}body.in-room h1 em{display:inline;margin-left:6px}body.in-room .hero h1 br{display:none}}
+/* Dimensional Midnight Aurora: depth comes from light, layered glass and shadows. */
+.room-card{isolation:isolate;transform:perspective(1200px) rotateY(-3deg) rotateX(1deg);background:linear-gradient(145deg,#ffffff0c,#1515294a 48%,#080c175c);border-top-color:#ffffff2b;border-left-color:#c8c0ff20;box-shadow:0 42px 90px -28px #000c,16px 16px 36px -24px #000c,inset 0 1px 0 #ffffff1a,inset 1px 0 0 #ffffff08;transition:transform .6s ease,box-shadow .6s ease}
+.room-card:before{content:'';position:absolute;z-index:-1;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(ellipse at 12% 0%,#b7a0ff0e,transparent 50%),linear-gradient(125deg,#ffffff03,transparent 42%,#84d7e903)}
+.room-card:after{content:'';position:absolute;inset:6px 6px auto;border-radius:24px 24px 0 0;height:1px;background:linear-gradient(90deg,transparent,#ffffff28,transparent);pointer-events:none}
+.avatar-stage:before{inset:8%;background:radial-gradient(ellipse at 35% 45%,#5582ff30,transparent 58%),radial-gradient(ellipse at 70% 50%,#b63bff24,transparent 60%);filter:blur(24px)}
+.avatar-stage:after{content:'';position:absolute;width:56%;height:10%;bottom:-7px;left:22%;border-radius:50%;background:#0008;filter:blur(9px);pointer-events:none}
+.avatar{background:radial-gradient(circle at 28% 16%,#1b1830,#000 60%);border-top-color:#ffffff21;box-shadow:0 10px 18px -5px #000c,0 0 calc(15px + var(--level)*55px) #8660ff25,inset 0 2px 5px #ffffff12,inset 0 -4px 12px #0008}
+.avatar:after{content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none;background:linear-gradient(135deg,#ffffff08,transparent 37%,transparent 77%,#90beff04);box-shadow:inset 0 0 0 1px #ffffff05}
+.orbit{box-shadow:0 8px 12px -10px #000c,inset 0 1px 0 #ffffff03}
+.primary{border-bottom-color:#8c85af;box-shadow:0 4px 0 #8c84a7,0 12px 23px -11px #a58eea6b,inset 0 1px 0 #fffc,inset 0 -1px 0 #ffffff4d;transition:transform .2s,box-shadow .2s}
+.primary:hover{transform:translateY(-2px);box-shadow:0 6px 0 #8c84a7,0 16px 28px -10px #a58eea75,inset 0 1px 0 #fff}
+.primary:active{transform:translateY(3px);box-shadow:0 1px 0 #8c84a7,0 5px 14px -8px #a58eea40,inset 0 1px 0 #fff8}
+.controls button{box-shadow:0 2px 0 #0006,inset 0 1px 0 #ffffff0b}
+@media(hover:hover) and (pointer:fine){.room-card:hover{transform:perspective(1200px) rotateY(0deg) rotateX(0deg);box-shadow:0 42px 90px -28px #000c,0 0 55px -35px #a991ff35,inset 0 1px 0 #ffffff1a}}
+@media(max-width:640px){.room-card{transform:none;box-shadow:0 26px 48px -20px #000c,inset 0 1px 0 #ffffff1a}}
+@media(prefers-reduced-motion:reduce){.room-card,.room-card:hover,.primary:hover,.primary:active{transform:none;transition:none}}
+.brand{display:flex;flex-direction:column;align-items:flex-start;gap:5px;letter-spacing:normal;word-spacing:normal}.brand-name{font-size:11px;font-weight:750;letter-spacing:.14em;color:#eae6f7}.brand-product{font-size:10px;letter-spacing:.01em;font-weight:450;color:#9892aa}

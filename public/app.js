@@ -1,4 +1,6 @@
 import { VoiceRoom } from './voice.js';
+import { initTelegram } from './telegram.js';
+initTelegram();
 const $ = id => document.getElementById(id);
 const status = message => $('status').textContent = message;
 const room = new VoiceRoom({status,
