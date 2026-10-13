@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { dailySession } from './daily.js';
 import { Room, RoomError } from './room.js';
 const files = {'/':'index.html','/index.html':'index.html','/style.css':'style.css','/app.js':'app.js','/voice.js':'voice.js','/fox.svg':'fox.svg','/fox-neon.webp':'fox-neon.webp','/fonts/manrope-variable.ttf':'fonts/manrope-variable.ttf','/fonts/instrument-serif-italic.ttf':'fonts/instrument-serif-italic.ttf'};
+files['/session-clock.js'] = 'session-clock.js';
 files['/daily-voice.js'] = 'daily-voice.js';
 files['/telegram.js'] = 'telegram.js';
 files['/diagnostics.js'] = 'diagnostics.js';

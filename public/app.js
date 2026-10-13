@@ -1,3 +1,4 @@
+import { SessionClock } from './session-clock.js';
 import { DailyRoom } from './daily-voice.js';
 import { initTelegram } from './telegram.js';
 import { diagnosticReport } from './diagnostics.js';
@@ -5,21 +6,30 @@ initTelegram();
 const $ = id => document.getElementById(id);
 const status = message => $('status').textContent = message;
 function clearChat(){ $('chat-messages').replaceChildren();$('chat-input').value=''; }
+const clock=new SessionClock({render:(mode,seconds)=>{
+ $('session-timer').hidden=mode==='off';
+ $('session-timer').textContent=mode==='waiting'?'Ожидание гостя · '+seconds+' с':'Разговор · '+Math.floor(seconds/60).toString().padStart(2,'0')+':'+(seconds%60).toString().padStart(2,'0');
+},expire:()=>{room.leave().then(()=>status('Гость не подключился за минуту. Комната закрыта, микрофон выключен.'));}});
+let clockInterval;
+const inviteUrl=()=>location.origin+location.pathname+location.search;
 const room = new DailyRoom({status,
   chat:(text,author)=>{const message=document.createElement('p');message.className='chat-message '+author;message.textContent=text;$('chat-messages').append(message);while($('chat-messages').children.length>100)$('chat-messages').firstChild.remove();message.scrollIntoView({block:'nearest'});},
   chatState:ready=>{$('chat-input').disabled=!ready;$('chat-send').disabled=!ready;$('chat-input').placeholder=ready?'Write a message…':'Waiting for your guest…';if(!ready)clearChat();},
   level:({local,remote})=>{ $('avatar').style.setProperty('--level',Math.max(local,remote).toFixed(3)); $('avatar').style.setProperty('--turn',((local-remote)*4).toFixed(2)+'deg'); },
-  joined:()=>{document.body.classList.add('in-room'); $('connect').hidden=true; $('controls').hidden=false; $('hint').textContent='Invite someone you want to hear.';},
-  ended:()=>{document.body.classList.remove('in-room'); $('capacity').textContent='0 / 2';$('controls').hidden=true; $('connect').hidden=false; $('connect').disabled=false; $('mute').textContent='Mute'; $('mute').setAttribute('aria-pressed','false'); $('enable-audio').hidden=true; $('hint').textContent='Microphone access only when you connect.';},
-  members:members=>{$('capacity').textContent=members.length+' / 2';const self=members.find(m=>m.id===room.session?.id);if(self) document.querySelector('.nickname').textContent=self.name;}
+  joined:()=>{document.body.classList.add('in-room');$('invitation').hidden=false;$('invite-link').value=inviteUrl();clearInterval(clockInterval);clockInterval=setInterval(()=>clock.tick(),250); $('connect').hidden=true; $('controls').hidden=false; $('hint').textContent='Пригласите близкого. Без гостя комната закроется через 60 секунд.';},
+  ended:()=>{document.body.classList.remove('in-room');clearInterval(clockInterval);clock.reset();$('invitation').hidden=true;$('chat-panel').hidden=true;$('chat-toggle').setAttribute('aria-expanded','false'); $('capacity').textContent='0 / 2';$('controls').hidden=true; $('connect').hidden=false; $('connect').disabled=false; $('mute').textContent='Mute'; $('mute').setAttribute('aria-pressed','false'); $('enable-audio').hidden=true; $('hint').textContent='Microphone access only when you connect.';},
+  members:members=>{clock.update(members.length);$('capacity').textContent=members.length+' / 2';const self=members.find(m=>m.id===room.session?.id);if(self) document.querySelector('.nickname').textContent=self.name;}
 });
 $('connect').onclick=async()=>{ $('connect').disabled=true; await room.enter(); };
 $('mute').onclick=()=>{const muted=room.mute();$('mute').textContent=muted?'Unmute':'Mute';$('mute').setAttribute('aria-pressed',String(muted));};
 $('leave').onclick=async()=>{await room.leave();status('Microphone off. Your next moment is one tap away.');};
 $('invite').onclick=async()=>{
- try {await navigator.clipboard.writeText(location.origin+location.pathname+location.search);status('Invite link copied · One room, two places.');}
- catch {status('Copy the page address to invite your guest.');}
+ if(navigator.share){try{await navigator.share({title:'Black Rock Talk',text:'Присоединяйся к моей комнате',url:inviteUrl()});return;}catch(error){if(error.name==='AbortError')return;}}
+ await copyInvite();
 };
+async function copyInvite(){try{await navigator.clipboard.writeText(inviteUrl());status('Ссылка скопирована. Отправьте её гостю.');}catch{$('invite-link').focus();$('invite-link').select();status('Выделите и скопируйте ссылку.');}}
+$('copy-invite').onclick=copyInvite;
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)clock.tick();});
 $('enable-audio').onclick=async()=>{try{await room.audio.play();await room.context?.resume();$('enable-audio').hidden=true;status('Audio enabled.');}catch{status('Audio could not start. Try again.');}};
 document.addEventListener('audio-blocked',()=>{$('enable-audio').hidden=false;});
 addEventListener('pagehide',()=>{room.leave();});

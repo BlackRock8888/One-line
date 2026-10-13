@@ -41,13 +41,14 @@
           <button id="connect" class="primary"><span>Enter the room</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           <div class="controls" id="controls" hidden>
             <button id="mute" aria-pressed="false">Mute</button>
-            <button id="invite">Invite</button>
+            <button id="invite">Поделиться</button>
             <button id="chat-toggle" aria-controls="chat-panel" aria-expanded="false">Chat</button>
             <button id="leave" class="leave">Leave</button>
             <button id="enable-audio" class="audio-recovery" hidden>Enable audio</button>
           </div>
           <p class="caption" id="hint">Your microphone turns on when you enter.</p>
         </div>
+        <div id="invitation" hidden><label for="invite-link">Ссылка для приглашения</label><div class="invite-row"><input id="invite-link" readonly aria-label="Ссылка на комнату"><button id="copy-invite">Скопировать</button></div><p id="session-timer" role="timer" hidden></p></div>
         <div class="status-line"><span class="status-dot" aria-hidden="true"></span><p id="status" role="status" aria-live="polite">Take a moment. Make a connection.</p></div>
         <details id="diagnostics"><summary>Connection log</summary><pre id="connection-log" aria-live="polite">No connection attempts yet.</pre><button id="copy-diagnostics">Copy report</button><p class="caption">Technical events only. No audio or access keys.</p></details>
       </section>
