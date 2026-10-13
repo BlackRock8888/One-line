@@ -43,3 +43,12 @@ test('actual Daily account gate is shown rather than generic network failure',as
  const code=dailyErrorCode({errorMsg:'account-missing-payment-method'});
  assert.equal(code,'ACCOUNT_PAYMENT_METHOD_REQUIRED');assert.match(callError(code)[1],/способ оплаты/);
 });
+test('provider refusal keeps prepared room shell until explicit leave or waiting expiry',async()=>{
+ const old=globalThis.document;let ended=0;
+ globalThis.document={createElement:()=>({setAttribute(){},pause(){}}),body:{append(){}},getElementById:()=>null};
+ try{
+  const room=new DailyRoom({ended:()=>ended++,level(){},chatState(){}});room.isPrepared=true;
+  await room.leave({keepRoom:true});assert.equal(ended,0);assert.equal(room.isPrepared,true);
+  await room.leave();assert.equal(ended,1);assert.equal(room.isPrepared,false);
+ }finally{globalThis.document=old;}
+});

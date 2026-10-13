@@ -20,7 +20,7 @@ export class DailyRoom {
    const response=await fetch('/api/daily/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({room:id}),signal:AbortSignal.timeout(25000)});
    const session=await response.json();logEvent('daily.session',{http:response.status,code:response.ok?'OK':session.error});
    if(!response.ok)throw new Error(session.error);
-   if(epoch!==this.epoch)return;this.prepared?.();logEvent('daily.room-created');
+   if(epoch!==this.epoch)return;this.isPrepared=true;this.prepared?.();logEvent('daily.room-created');
    this.stage?.('Загружаем звонок','Подключаем голосовой сервис.');await loadSdk();if(epoch!==this.epoch)return;
    const call=this.call=window.Daily.createCallObject({audioSource:true,videoSource:false});
    const update=()=>{if(this.call!==call)return;const participants=Object.values(call.participants());const self=participants.find(p=>p.local);this.session={id:self?.session_id};this.members(participants.map(p=>({id:p.session_id,name:p.local?'You':'Your guest'})));this.chatState(participants.length>1);this.status(participants.length>1?'Connected · Just talk.':'Waiting for your guest · Share this page link.');};
@@ -32,16 +32,16 @@ export class DailyRoom {
    call.on('participant-left',update);
    call.on('participant-updated',event=>{if(this.call!==call)return;const p=event.participant;if(!p.local){const track=p.tracks?.audio?.persistentTrack || p.audioTrack;if(track){this.audio.srcObject=new MediaStream([track]);this.audio.play().catch(()=>document.dispatchEvent(new Event('audio-blocked')));}}});
    call.on('app-message',event=>{if(this.call===call && event.data?.type==='chat' && typeof event.data.text==='string' && event.data.text.length<=1000)this.chat(event.data.text,'guest');});
-   call.on('error',event=>{if(this.call===call){const code=dailyErrorCode(event);logEvent('daily.error',{code});this.leave().then(()=>{const [title,description]=callError(code);this.failed?.(title,description);this.status(description);});}});
+   call.on('error',event=>{if(this.call===call){const code=dailyErrorCode(event);logEvent('daily.error',{code});this.leave({keepRoom:this.isPrepared}).then(()=>{const [title,description]=callError(code);this.failed?.(title,description);this.status(description);});}});
    call.on('left-meeting',()=>{if(this.call===call)this.leave();});
    this.stage?.('Подключаем микрофон','Разрешите доступ в окне браузера. Камера не используется.');this.status('Ожидаем разрешение микрофона…');
-   const timeout=setTimeout(()=>{if(this.call===call && !this.hasJoined){logEvent('daily.error',{code:'JOIN_TIMEOUT'});this.leave().then(()=>{const [title,description]=callError('JOIN_TIMEOUT');this.failed?.(title,description);this.status(description);});}},30000);try{await call.join({url:session.url,token:session.token});}finally{clearTimeout(timeout);}
-  }catch(error){if(epoch===this.epoch){const code=dailyErrorCode(error);logEvent('daily.error',{code});await this.leave();const [title,description]=callError(code);this.failed?.(title,description);this.status(description);document.getElementById('diagnostics')?.setAttribute('open','');}}
+   const timeout=setTimeout(()=>{if(this.call===call && !this.hasJoined){logEvent('daily.error',{code:'JOIN_TIMEOUT'});this.leave({keepRoom:this.isPrepared}).then(()=>{const [title,description]=callError('JOIN_TIMEOUT');this.failed?.(title,description);this.status(description);});}},30000);try{await call.join({url:session.url,token:session.token});}finally{clearTimeout(timeout);}
+  }catch(error){if(epoch===this.epoch){const code=dailyErrorCode(error);logEvent('daily.error',{code});await this.leave({keepRoom:this.isPrepared});const [title,description]=callError(code);this.failed?.(title,description);this.status(description);document.getElementById('diagnostics')?.setAttribute('open','');}}
 
  }
  mute(){this.muted=!this.muted;this.call?.setLocalAudio(!this.muted);return this.muted;}
  sendChat(text){text=text.trim().slice(0,1000);if(!text || !this.call || Object.values(this.call.participants()).length<2)return false;try{this.call.sendAppMessage({type:'chat',text},'*');this.chat(text,'self');return true;}catch{return false;}}
- async leave(){++this.epoch;this.hasJoined=false;const call=this.call;this.call=null;this.session=null;this.audio.pause();this.audio.srcObject=null;this.chatState(false);this.level({local:0,remote:0});this.muted=false;this.ended();if(call){for(const p of Object.values(call.participants?.() || {})){if(p.local)p.tracks?.audio?.persistentTrack?.stop();}const bounded=async operation=>{let timer;try{await Promise.race([Promise.resolve().then(operation),new Promise(resolve=>timer=setTimeout(resolve,this.cleanupTimeout || 2000))]);}catch{}finally{clearTimeout(timer);}};await bounded(()=>call.leave());await bounded(()=>call.destroy());}}
+ async leave({keepRoom=false}={}){++this.epoch;this.hasJoined=false;const call=this.call;this.call=null;this.session=null;this.audio.pause();this.audio.srcObject=null;this.chatState(false);this.level({local:0,remote:0});this.muted=false;if(!keepRoom){this.isPrepared=false;this.ended();}if(call){for(const p of Object.values(call.participants?.() || {})){if(p.local)p.tracks?.audio?.persistentTrack?.stop();}const bounded=async operation=>{let timer;try{await Promise.race([Promise.resolve().then(operation),new Promise(resolve=>timer=setTimeout(resolve,this.cleanupTimeout || 2000))]);}catch{}finally{clearTimeout(timer);}};await bounded(()=>call.leave());await bounded(()=>call.destroy());}}
 }
 
 export function dailyErrorCode(error){
