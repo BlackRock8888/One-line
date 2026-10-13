@@ -22,3 +22,10 @@ test('connection failures produce actionable, distinct messages',async()=>{
  assert.match(callError('token-expired')[0],/истёк/);
  assert.match(callError('unknown')[1],/выключен/);
 });
+test('Daily structured errors retain meaningful safe reason without tokens',async()=>{
+ const {dailyErrorCode}=await import('../public/daily-voice.js');
+ assert.equal(dailyErrorCode({error:{type:'connection-error',msg:'Failed to load call object bundle.'}}),'BUNDLE_LOAD_FAILED');
+ assert.equal(dailyErrorCode({errorMsg:'meeting-full'}),'ROOM_FULL');
+ assert.equal(dailyErrorCode({errorMsg:'microphone permission denied'}),'MICROPHONE_DENIED');
+ assert.equal(dailyErrorCode({errorMsg:'unknown sensitive URL token=secret'}),'CALL_FAILED');
+});

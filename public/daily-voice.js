@@ -12,7 +12,7 @@ function loadSdk(){
 export class DailyRoom {
  constructor(callbacks){Object.assign(this,callbacks);this.muted=false;this.epoch=0;this.audio=document.createElement('audio');this.audio.autoplay=true;this.audio.setAttribute('playsinline','');document.body.append(this.audio);}
  async enter(){
-  const epoch=++this.epoch;
+  const epoch=++this.epoch;this.hasJoined=false;
   try {
    this.stage?.('Создаём комнату','Подготавливаем защищённое подключение.');logEvent('daily.start');this.status('Preparing your room…');
    const url=new URL(location.href);let id=url.searchParams.get('room');
@@ -23,24 +23,38 @@ export class DailyRoom {
    this.stage?.('Загружаем звонок','Подключаем голосовой сервис.');await loadSdk();if(epoch!==this.epoch)return;
    const call=this.call=window.Daily.createCallObject({audioSource:true,videoSource:false});
    const update=()=>{if(this.call!==call)return;const participants=Object.values(call.participants());const self=participants.find(p=>p.local);this.session={id:self?.session_id};this.members(participants.map(p=>({id:p.session_id,name:p.local?'You':'Your guest'})));this.chatState(participants.length>1);this.status(participants.length>1?'Connected · Just talk.':'Waiting for your guest · Share this page link.');};
-   call.on('joined-meeting',()=>{if(this.call!==call)return;this.joined();update();call.startLocalAudioLevelObserver?.();call.startRemoteParticipantsAudioLevelObserver?.();});
-   const levels={local:0,remote:0};call.on('local-audio-level',event=>{if(this.call===call){levels.local=this.muted?0:Math.min(1,event.audioLevel || 0);this.level(levels);}});call.on('remote-participants-audio-level',event=>{if(this.call===call){levels.remote=Math.max(0,...(event.participantsAudioLevel || []).map(p=>p.audioLevel || 0));this.level(levels);}});
+   call.on('joined-meeting',()=>{if(this.call!==call)return;this.hasJoined=true;logEvent('daily.joined');this.joined();update();Promise.resolve(call.startLocalAudioLevelObserver?.()).catch(()=>logEvent('daily.level',{code:'LOCAL_OBSERVER_UNAVAILABLE'}));Promise.resolve(call.startRemoteParticipantsAudioLevelObserver?.()).catch(()=>logEvent('daily.level',{code:'REMOTE_OBSERVER_UNAVAILABLE'}));});
+   const levels={local:0,remote:0};call.on('local-audio-level',event=>{if(this.call===call){levels.local=this.muted?0:Math.min(1,event.audioLevel || 0);this.level(levels);}});call.on('remote-participants-audio-level',event=>{if(this.call===call){levels.remote=Math.max(0,...(Array.isArray(event.participantsAudioLevel)?event.participantsAudioLevel:[]).map(p=>p.audioLevel || 0));this.level(levels);}});
+   for(const name of ['loading','loaded','load-attempt-failed','joining-meeting'])call.on(name,()=>{if(this.call===call){logEvent('daily.'+name);if(name==='loading')this.stage?.('Загружаем голосовой модуль','Подключаемся к инфраструктуре Daily.');if(name==='joining-meeting')this.stage?.('Входим в комнату','Завершаем подключение.');}});
+   call.on('camera-error',event=>{if(this.call===call)logEvent('daily.media-error',{code:dailyErrorCode(event)});});
    call.on('participant-joined',update);
    call.on('participant-left',update);
    call.on('participant-updated',event=>{if(this.call!==call)return;const p=event.participant;if(!p.local){const track=p.tracks?.audio?.persistentTrack || p.audioTrack;if(track){this.audio.srcObject=new MediaStream([track]);this.audio.play().catch(()=>document.dispatchEvent(new Event('audio-blocked')));}}});
    call.on('app-message',event=>{if(this.call===call && event.data?.type==='chat' && typeof event.data.text==='string' && event.data.text.length<=1000)this.chat(event.data.text,'guest');});
-   call.on('error',event=>{if(this.call===call){const code=String(event?.error?.type || 'CALL_FAILED').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,80);logEvent('daily.error',{code});this.leave().then(()=>{const [title,description]=callError(code);this.failed?.(title,description);this.status(description);});}});
+   call.on('error',event=>{if(this.call===call){const code=dailyErrorCode(event);logEvent('daily.error',{code});this.leave().then(()=>{const [title,description]=callError(code);this.failed?.(title,description);this.status(description);});}});
    call.on('left-meeting',()=>{if(this.call===call)this.leave();});
    this.stage?.('Подключаем микрофон','Разрешите доступ в окне браузера. Камера не используется.');this.status('Ожидаем разрешение микрофона…');
-   const timeout=setTimeout(()=>{if(this.call===call && !this.session){logEvent('daily.error',{code:'JOIN_TIMEOUT'});this.leave().then(()=>{const [title,description]=callError('JOIN_TIMEOUT');this.failed?.(title,description);this.status(description);});}},30000);try{await call.join({url:session.url,token:session.token});}finally{clearTimeout(timeout);}
-  }catch(error){if(epoch===this.epoch){logEvent('daily.error',{code:error.name==='Error'?error.message:error.name});await this.leave();this.status(error.message==='DAILY_UNCONFIGURED'?'Daily API key is not configured yet.':error.message==='SDK_UNAVAILABLE'?'Could not load the call service. Try again.':'Could not enter the room. It may be full or unavailable.');const [title,description]=callError(error.message || error.name);this.failed?.(title,description);this.status(description);document.getElementById('diagnostics')?.setAttribute('open','');}}
+   const timeout=setTimeout(()=>{if(this.call===call && !this.hasJoined){logEvent('daily.error',{code:'JOIN_TIMEOUT'});this.leave().then(()=>{const [title,description]=callError('JOIN_TIMEOUT');this.failed?.(title,description);this.status(description);});}},30000);try{await call.join({url:session.url,token:session.token});}finally{clearTimeout(timeout);}
+  }catch(error){if(epoch===this.epoch){const code=dailyErrorCode(error);logEvent('daily.error',{code});await this.leave();const [title,description]=callError(code);this.failed?.(title,description);this.status(description);document.getElementById('diagnostics')?.setAttribute('open','');}}
+
  }
  mute(){this.muted=!this.muted;this.call?.setLocalAudio(!this.muted);return this.muted;}
  sendChat(text){text=text.trim().slice(0,1000);if(!text || !this.call || Object.values(this.call.participants()).length<2)return false;try{this.call.sendAppMessage({type:'chat',text},'*');this.chat(text,'self');return true;}catch{return false;}}
- async leave(){++this.epoch;const call=this.call;this.call=null;this.session=null;this.audio.pause();this.audio.srcObject=null;this.chatState(false);this.level({local:0,remote:0});this.muted=false;this.ended();if(call){try{await call.leave();}catch{}try{await call.destroy();}catch{}}}
+ async leave(){++this.epoch;this.hasJoined=false;const call=this.call;this.call=null;this.session=null;this.audio.pause();this.audio.srcObject=null;this.chatState(false);this.level({local:0,remote:0});this.muted=false;this.ended();if(call){try{await call.leave();}catch{}try{await call.destroy();}catch{}}}
 }
 
+export function dailyErrorCode(error){
+ const text=[error?.name,error?.message,error?.errorMsg,error?.error?.type,error?.error?.msg,typeof error==='string'?error:''].filter(Boolean).join(' ');
+ if(/load call object bundle|load.*bundle/i.test(text))return 'BUNDLE_LOAD_FAILED';
+ if(/permission|NotAllowed|denied/i.test(text))return 'MICROPHONE_DENIED';
+ if(/meeting-full|room-full|max.participant/i.test(text))return 'ROOM_FULL';
+ if(/exp-room|exp-token|expired|expir/i.test(text))return 'ROOM_EXPIRED';
+ for(const code of ['DAILY_UNCONFIGURED','SDK_TIMEOUT','SDK_UNAVAILABLE','JOIN_TIMEOUT','DAILY_ROOM_UNAVAILABLE','DAILY_TOKEN_UNAVAILABLE','DAILY_UNAVAILABLE'])if(text.includes(code))return code;
+ return 'CALL_FAILED';
+}
 export function callError(code){
+ if(code==='BUNDLE_LOAD_FAILED')return ['Голосовой модуль не загрузился','Браузер не смог загрузить модуль Daily. Подключение не началось, микрофон выключен.'];
+ if(code==='JOIN_TIMEOUT')return ['Вход занял слишком много времени','Daily не подтвердил подключение за 30 секунд. Микрофон выключен; повторите попытку.'];
  if(/DAILY_UNCONFIGURED/.test(code))return ['Сервис ещё не настроен','Не удалось получить доступ к звонку. Микрофон выключен.'];
  if(/SDK_UNAVAILABLE|SDK_TIMEOUT/.test(code))return ['Звонок не загрузился','Не удалось загрузить голосовой сервис. Проверьте сеть и повторите вход.'];
  if(/NotAllowed|permission|denied/i.test(code))return ['Нет доступа к микрофону','Разрешите микрофон в настройках браузера или Telegram и попробуйте снова.'];
