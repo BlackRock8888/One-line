@@ -1,8 +1,8 @@
 import { logEvent } from './diagnostics.js';
 let sdk;
 function loadSdk(){
- if(window.DailyIframe)return Promise.resolve();
- return sdk ||= new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://unpkg.com/@daily-co/daily-js@0.85.0/dist/daily-iframe.js';s.onload=()=>window.DailyIframe?resolve():reject(new Error('SDK_UNAVAILABLE'));s.onerror=()=>{sdk=null;reject(new Error('SDK_UNAVAILABLE'));};document.head.append(s);});
+ if(window.Daily)return Promise.resolve();
+ return sdk ||= new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://unpkg.com/@daily-co/daily-js@0.85.0/dist/daily-iframe.js';s.onload=()=>window.Daily?resolve():reject(new Error('SDK_UNAVAILABLE'));s.onerror=()=>{sdk=null;reject(new Error('SDK_UNAVAILABLE'));};document.head.append(s);});
 }
 export class DailyRoom {
  constructor(callbacks){Object.assign(this,callbacks);this.muted=false;this.epoch=0;this.audio=document.createElement('audio');this.audio.autoplay=true;this.audio.setAttribute('playsinline','');document.body.append(this.audio);}
@@ -16,7 +16,7 @@ export class DailyRoom {
    const session=await response.json();logEvent('daily.session',{http:response.status,code:response.ok?'OK':session.error});
    if(!response.ok)throw new Error(session.error);
    await loadSdk();if(epoch!==this.epoch)return;
-   const call=this.call=window.DailyIframe.createCallObject({audioSource:true,videoSource:false});
+   const call=this.call=window.Daily.createCallObject({audioSource:true,videoSource:false});
    const update=()=>{if(this.call!==call)return;const participants=Object.values(call.participants());const self=participants.find(p=>p.local);this.session={id:self?.session_id};this.members(participants.map(p=>({id:p.session_id,name:p.local?'You':'Your guest'})));this.chatState(participants.length>1);this.status(participants.length>1?'Connected · Just talk.':'Waiting for your guest · Share this page link.');};
    call.on('joined-meeting',()=>{if(this.call!==call)return;this.joined();update();});
    call.on('participant-joined',update);
