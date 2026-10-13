@@ -46,6 +46,7 @@ export class DailyRoom {
 
 export function dailyErrorCode(error){
  const text=[error?.name,error?.message,error?.errorMsg,error?.error?.type,error?.error?.msg,typeof error==='string'?error:''].filter(Boolean).join(' ');
+ if(/account-missing-payment-method/i.test(text))return 'ACCOUNT_PAYMENT_METHOD_REQUIRED';
  if(/load call object bundle|load.*bundle/i.test(text))return 'BUNDLE_LOAD_FAILED';
  if(/permission|NotAllowed|denied/i.test(text))return 'MICROPHONE_DENIED';
  if(/meeting-full|room-full|max.participant/i.test(text))return 'ROOM_FULL';
@@ -54,6 +55,7 @@ export function dailyErrorCode(error){
  return 'CALL_FAILED';
 }
 export function callError(code){
+ if(code==='ACCOUNT_PAYMENT_METHOD_REQUIRED')return ['Daily блокирует звонок','Аккаунт Daily требует добавить способ оплаты. Комната создана, но звонки пока недоступны. Это не ошибка вашей сети.'];
  if(code==='BUNDLE_LOAD_FAILED')return ['Голосовой модуль не загрузился','Браузер не смог загрузить модуль Daily. Подключение не началось, микрофон выключен.'];
  if(code==='JOIN_TIMEOUT')return ['Вход занял слишком много времени','Daily не подтвердил подключение за 30 секунд. Микрофон выключен; повторите попытку.'];
  if(/DAILY_UNCONFIGURED/.test(code))return ['Сервис ещё не настроен','Не удалось получить доступ к звонку. Микрофон выключен.'];

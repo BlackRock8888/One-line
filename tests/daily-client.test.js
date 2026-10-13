@@ -38,3 +38,8 @@ test('cleanup cannot hide failure forever when Daily leave/destroy hang',async()
   await room.leave();assert.equal(ended,true);assert.equal(stopped,true);assert.equal(room.call,null);
  }finally{globalThis.document=old;}
 });
+test('actual Daily account gate is shown rather than generic network failure',async()=>{
+ const {dailyErrorCode,callError}=await import('../public/daily-voice.js');
+ const code=dailyErrorCode({errorMsg:'account-missing-payment-method'});
+ assert.equal(code,'ACCOUNT_PAYMENT_METHOD_REQUIRED');assert.match(callError(code)[1],/способ оплаты/);
+});

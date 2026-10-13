@@ -27,6 +27,7 @@ Object.assign(english,{
 'Браузер не смог загрузить модуль Daily. Подключение не началось, микрофон выключен.':'The browser could not load the Daily module. Connection did not start; microphone off.',
 'Сервис ещё не настроен':'Service is not configured yet',
 'Не удалось получить доступ к звонку. Микрофон выключен.':'Could not access the call. Microphone off.'});
+rows.push(['Daily blocks this call','Daily блокирует звонок','تمنع Daily هذه المكالمة'],['The Daily account requires a payment method. The room exists, but calls are unavailable. This is not a network error.','Аккаунт Daily требует добавить способ оплаты. Комната создана, но звонки пока недоступны. Это не ошибка вашей сети.','يتطلب حساب Daily إضافة وسيلة دفع. الغرفة موجودة لكن المكالمات غير متاحة. هذه ليست مشكلة في الشبكة.']);
 for(const row of rows)row[0]=english[row[0]] || row[0];
 const lookup=new Map();for(const row of rows)for(const text of row)lookup.set(text,row);
 let locale='en';try{locale=localStorage.getItem('brt-language') || (navigator.languages || [navigator.language]).find(l=>/^(ru|ar|en)(-|$)/i.test(l))?.slice(0,2).toLowerCase() || 'en';}catch{}if(!['ru','en','ar'].includes(locale))locale='en';
