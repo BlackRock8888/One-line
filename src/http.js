@@ -1,7 +1,9 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
+import { dailySession } from './daily.js';
 import { Room, RoomError } from './room.js';
 const files = {'/':'index.html','/index.html':'index.html','/style.css':'style.css','/app.js':'app.js','/voice.js':'voice.js','/fox.svg':'fox.svg','/fox-neon.webp':'fox-neon.webp','/fonts/manrope-variable.ttf':'fonts/manrope-variable.ttf','/fonts/instrument-serif-italic.ttf':'fonts/instrument-serif-italic.ttf'};
+files['/daily-voice.js'] = 'daily-voice.js';
 files['/telegram.js'] = 'telegram.js';
 files['/diagnostics.js'] = 'diagnostics.js';
 const types = {html:'text/html',css:'text/css',js:'text/javascript',svg:'image/svg+xml',webp:'image/webp',ttf:'font/ttf'};
@@ -15,6 +17,7 @@ export function createApp({ room = new Room(), iceServers = [], getIce = () => (
     const json = (code, data) => { res.writeHead(code, {'Content-Type':'application/json'}).end(JSON.stringify(data)); };
     const url = new URL(req.url, 'http://localhost');
     try {
+      if(url.pathname==='/api/daily/session'){const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>2048){json(413,{error:'BODY_TOO_LARGE'});return;}chunks.push(chunk);}const response=await dailySession(new Request('http://'+req.headers.host+req.url,{method:req.method,headers:req.headers,...(req.method==='POST'?{body:Buffer.concat(chunks)}:{})}));res.writeHead(response.status,Object.fromEntries(response.headers));res.end(await response.text());return;}
       if (url.pathname.startsWith('/api/room/') || url.pathname === '/api/config') {
         if (req.method !== 'POST') { json(405,{error:'METHOD_NOT_ALLOWED'}); return; }
         if (req.headers.origin && req.headers.origin !== 'http://' + req.headers.host && req.headers.origin !== 'https://' + req.headers.host) { json(403,{error:'ORIGIN_DENIED'}); return; }

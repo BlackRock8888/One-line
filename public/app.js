@@ -1,11 +1,11 @@
-import { VoiceRoom } from './voice.js';
+import { DailyRoom } from './daily-voice.js';
 import { initTelegram } from './telegram.js';
 import { diagnosticReport } from './diagnostics.js';
 initTelegram();
 const $ = id => document.getElementById(id);
 const status = message => $('status').textContent = message;
 function clearChat(){ $('chat-messages').replaceChildren();$('chat-input').value=''; }
-const room = new VoiceRoom({status,
+const room = new DailyRoom({status,
   chat:(text,author)=>{const message=document.createElement('p');message.className='chat-message '+author;message.textContent=text;$('chat-messages').append(message);while($('chat-messages').children.length>100)$('chat-messages').firstChild.remove();message.scrollIntoView({block:'nearest'});},
   chatState:ready=>{$('chat-input').disabled=!ready;$('chat-send').disabled=!ready;$('chat-input').placeholder=ready?'Write a message…':'Waiting for your guest…';if(!ready)clearChat();},
   level:({local,remote})=>{ $('avatar').style.setProperty('--level',Math.max(local,remote).toFixed(3)); $('avatar').style.setProperty('--turn',((local-remote)*4).toFixed(2)+'deg'); },
@@ -17,7 +17,7 @@ $('connect').onclick=async()=>{ $('connect').disabled=true; await room.enter(); 
 $('mute').onclick=()=>{const muted=room.mute();$('mute').textContent=muted?'Unmute':'Mute';$('mute').setAttribute('aria-pressed',String(muted));};
 $('leave').onclick=async()=>{await room.leave();status('Microphone off. Your next moment is one tap away.');};
 $('invite').onclick=async()=>{
- try {await navigator.clipboard.writeText(location.origin+'/');status('Invite link copied · One room, two places.');}
+ try {await navigator.clipboard.writeText(location.origin+location.pathname+location.search);status('Invite link copied · One room, two places.');}
  catch {status('Copy the page address to invite your guest.');}
 };
 $('enable-audio').onclick=async()=>{try{await room.audio.play();await room.context?.resume();$('enable-audio').hidden=true;status('Audio enabled.');}catch{status('Audio could not start. Try again.');}};
