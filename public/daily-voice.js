@@ -2,7 +2,12 @@ import { logEvent } from './diagnostics.js';
 let sdk;
 function loadSdk(){
  if(window.Daily)return Promise.resolve();
- return sdk ||= new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://unpkg.com/@daily-co/daily-js@0.85.0/dist/daily-iframe.js';s.onload=()=>window.Daily?resolve():reject(new Error('SDK_UNAVAILABLE'));s.onerror=()=>{sdk=null;reject(new Error('SDK_UNAVAILABLE'));};document.head.append(s);});
+ return sdk ||= new Promise((resolve,reject)=>{
+ const s=document.createElement('script');let done=false;
+ const finish=error=>{if(done)return;done=true;clearTimeout(timer);if(error){sdk=null;s.remove();reject(error);}else resolve();};
+ const timer=setTimeout(()=>finish(new Error('SDK_TIMEOUT')),15000);
+ s.src='/vendor/daily-0.85.0.js';s.onload=()=>finish(window.Daily?null:new Error('SDK_UNAVAILABLE'));s.onerror=()=>finish(new Error('SDK_UNAVAILABLE'));document.head.append(s);
+ });
 }
 export class DailyRoom {
  constructor(callbacks){Object.assign(this,callbacks);this.muted=false;this.epoch=0;this.audio=document.createElement('audio');this.audio.autoplay=true;this.audio.setAttribute('playsinline','');document.body.append(this.audio);}
@@ -27,7 +32,7 @@ export class DailyRoom {
    call.on('error',event=>{if(this.call===call){const code=String(event?.error?.type || 'CALL_FAILED').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,80);logEvent('daily.error',{code});this.leave().then(()=>{const [title,description]=callError(code);this.failed?.(title,description);this.status(description);});}});
    call.on('left-meeting',()=>{if(this.call===call)this.leave();});
    this.stage?.('Подключаем микрофон','Разрешите доступ в окне браузера. Камера не используется.');this.status('Ожидаем разрешение микрофона…');
-   await call.join({url:session.url,token:session.token});
+   const timeout=setTimeout(()=>{if(this.call===call && !this.session){logEvent('daily.error',{code:'JOIN_TIMEOUT'});this.leave().then(()=>{const [title,description]=callError('JOIN_TIMEOUT');this.failed?.(title,description);this.status(description);});}},30000);try{await call.join({url:session.url,token:session.token});}finally{clearTimeout(timeout);}
   }catch(error){if(epoch===this.epoch){logEvent('daily.error',{code:error.name==='Error'?error.message:error.name});await this.leave();this.status(error.message==='DAILY_UNCONFIGURED'?'Daily API key is not configured yet.':error.message==='SDK_UNAVAILABLE'?'Could not load the call service. Try again.':'Could not enter the room. It may be full or unavailable.');const [title,description]=callError(error.message || error.name);this.failed?.(title,description);this.status(description);document.getElementById('diagnostics')?.setAttribute('open','');}}
  }
  mute(){this.muted=!this.muted;this.call?.setLocalAudio(!this.muted);return this.muted;}
@@ -37,7 +42,7 @@ export class DailyRoom {
 
 export function callError(code){
  if(/DAILY_UNCONFIGURED/.test(code))return ['Сервис ещё не настроен','Не удалось получить доступ к звонку. Микрофон выключен.'];
- if(/SDK_UNAVAILABLE/.test(code))return ['Звонок не загрузился','Не удалось загрузить голосовой сервис. Проверьте сеть и повторите вход.'];
+ if(/SDK_UNAVAILABLE|SDK_TIMEOUT/.test(code))return ['Звонок не загрузился','Не удалось загрузить голосовой сервис. Проверьте сеть и повторите вход.'];
  if(/NotAllowed|permission|denied/i.test(code))return ['Нет доступа к микрофону','Разрешите микрофон в настройках браузера или Telegram и попробуйте снова.'];
  if(/full|max.participant|room.occupied/i.test(code))return ['В комнате уже двое','Подождите, пока освободится место. Дополнительные места пока недоступны.'];
  if(/expired|expir/i.test(code))return ['Срок комнаты истёк','Создайте новую комнату с главной страницы и отправьте новую ссылку.'];
