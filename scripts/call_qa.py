@@ -22,11 +22,22 @@ async def main():
    assert stats and stats[0]['bytes']>0,stats
    print('Inbound audio RTP:',json.dumps(stats))
    assert float(await page.locator('#avatar').evaluate("e=>e.style.getPropertyValue('--level')"))>0
+  await a.click('#chat-toggle');await b.click('#chat-toggle')
+  await a.wait_for_function("!document.getElementById('chat-input').disabled")
+  await a.fill('#chat-input','Hello <script>not executable</script>')
+  await a.click('#chat-send')
+  await b.wait_for_function("document.getElementById('chat-messages').textContent.includes('Hello <script>not executable</script>')")
+  assert await b.locator('#chat-messages script').count()==0
+  await b.fill('#chat-input','Reply from guest');await b.click('#chat-send')
+  await a.wait_for_function("document.getElementById('chat-messages').textContent.includes('Reply from guest')")
+  await a.click('#chat-close');await b.click('#chat-close')
   await c.click('#connect');await c.wait_for_function("document.getElementById('status').textContent.includes('ROOM OCCUPIED')")
   assert await c.evaluate("window.__streams.every(s=>s.getTracks().every(t=>t.readyState==='ended'))")
   await a.click('#mute');assert await a.evaluate("window.__streams.at(-1).getAudioTracks()[0].enabled===false")
   await a.click('#leave');assert await a.evaluate("window.__streams.every(s=>s.getTracks().every(t=>t.readyState==='ended'))")
   await b.wait_for_function("document.getElementById('status').textContent.includes('Waiting for your guest')")
+  assert await a.locator('#chat-messages').text_content()==''
+  assert await b.locator('#chat-messages').text_content()==''
   await c.click('#connect')
   for page in [b,c]: await page.wait_for_function("window.__pcs.at(-1)?.connectionState==='connected'",timeout=20000)
   await c.emulate_media(reduced_motion='reduce'); assert await c.locator('.avatar img').evaluate('e=>getComputedStyle(e).animationName')=='none'
@@ -38,6 +49,6 @@ async def main():
   await a.evaluate("()=>{navigator.mediaDevices.getUserMedia=async()=>{throw new DOMException('denied','NotAllowedError')}}")
   await a.click('#connect');await a.wait_for_function("document.getElementById('status').textContent.includes('permission denied')")
   assert not errors,errors
-  print('PASS: two isolated sessions connected; incoming audio packets in both directions; third denied; microphone cleanup; mute; leave; replacement participant connected; permission denial; responsive layout; reduced motion; no JS errors.')
+  print('PASS: incoming audio both directions; ephemeral chat both directions, escaped text, cleared on leave; third denied; microphone cleanup; mute; replacement participant; permission denial; responsive layout; no JS errors.')
   await browser.close()
 asyncio.run(main())

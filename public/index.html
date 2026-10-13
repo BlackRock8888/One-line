@@ -42,17 +42,25 @@
           <div class="controls" id="controls" hidden>
             <button id="mute" aria-pressed="false">Mute</button>
             <button id="invite">Invite</button>
+            <button id="chat-toggle" aria-controls="chat-panel" aria-expanded="false">Chat</button>
             <button id="leave" class="leave">Leave</button>
             <button id="enable-audio" class="audio-recovery" hidden>Enable audio</button>
           </div>
           <p class="caption" id="hint">Your microphone turns on when you enter.</p>
         </div>
         <div class="status-line"><span class="status-dot" aria-hidden="true"></span><p id="status" role="status" aria-live="polite">Take a moment. Make a connection.</p></div>
+        <details id="diagnostics"><summary>Connection log</summary><pre id="connection-log" aria-live="polite">No connection attempts yet.</pre><button id="copy-diagnostics">Copy report</button><p class="caption">Technical events only. No audio or access keys.</p></details>
       </section>
     </div>
 
     <footer><span class="footer-note"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 7 3v6c0 4-7 9-7 9s-7-5-7-9V6l7-3Z" stroke="currentColor" stroke-width="1.4"/></svg>No recordings. Just the moment.</span><span class="footer-signature">Less distance. More voice.<span aria-hidden="true">✦</span></span></footer>
   </main>
+  <aside id="chat-panel" class="chat-panel" aria-label="Room chat" hidden>
+    <div class="chat-heading"><span>Room chat</span><button id="chat-close" aria-label="Close chat">×</button></div>
+    <p class="caption">Only this session. History disappears when it ends.</p>
+    <div id="chat-messages" role="log" aria-live="polite"></div>
+    <form id="chat-form"><label class="chat-label" for="chat-input">Message</label><input id="chat-input" maxlength="1000" placeholder="Waiting for your guest…" autocomplete="off" disabled><button id="chat-send" disabled>Send</button></form>
+  </aside>
   <script type="module" src="/app.js"></script>
 </body>
 </html>
