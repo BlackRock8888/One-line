@@ -14,3 +14,11 @@ test('Daily client accepts official Daily global and enters the room',async()=>{
   await room.enter();assert.equal(joined,true);assert.equal(room.session.id,'self');await room.leave();assert.equal(destroyed,true);
  }finally{for(const key of names){if(old[key]===undefined)delete globalThis[key];else globalThis[key]=old[key];}}
 });
+test('connection failures produce actionable, distinct messages',async()=>{
+ const {callError}=await import('../public/daily-voice.js');
+ assert.match(callError('NotAllowedError')[0],/микрофону/);
+ assert.match(callError('SDK_UNAVAILABLE')[0],/загрузился/);
+ assert.match(callError('room-full')[0],/двое/);
+ assert.match(callError('token-expired')[0],/истёк/);
+ assert.match(callError('unknown')[1],/выключен/);
+});
