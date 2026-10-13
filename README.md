@@ -1,23 +1,24 @@
 # Black Rock Talk
 
-One room. Two voices. No accounts. Product name: **Black Rock Talk**. Repository technical name: **One-line**; repository and existing source documents are not renamed.
+One room. Two voices. No accounts. Product name: **Black Rock Talk**; repository technical name remains **One-line**.
 
-## Stage 1
+## Minimal MVP
 
-Midnight Aurora mobile interface, local polygonal orange SVG fox, reduced motion, microphone permission handling, voice-reactive local avatar, mute/leave and preview sharing. The interface explicitly labels microphone preview: **there is no two-person call yet**.
+Midnight Aurora mobile interface, local polygonal SVG fox, local/remote voice levels, connect/mute/leave/invite, atomic two-place room, third participant denied, temporary session tokens, heartbeat/45-second TTL, authenticated short-lived TURN configuration. No audio recording or transcription code.
 
-Zero runtime dependencies. Node 22+: `npm run dev` (http://localhost:3000), `npm run build` (static `dist/`). Vercel uses the included configuration. HTTPS is required for microphone access outside localhost.
+Zero runtime dependencies, Node 22+: `npm run dev` (http://localhost:3000), `npm test`, `npm run build`. External devices need HTTPS. Configure real TURN for cross-network connectivity; see [.env.example](.env.example).
 
-## Next stages
+One persistent Node process holds authoritative room state. Vercel hosts the interface and stateless HTTP proxies to `SIGNALING_ORIGIN`. Never scale independent copies of the in-memory room. [Deployment runbook](docs/MVP_RUNBOOK.md).
 
-Authoritative atomic two-slot occupancy with leases and TTL, authenticated signaling, WebRTC audio, separate local/remote levels, configured STUN/TURN, deployment and real iPhone/cross-network QA. Never use a PeerJS name collision as room capacity enforcement. Stateless frontend hosting must not use process-local occupancy as global state; use a single authoritative signaling process or atomic shared storage.
+## Verified locally, 2026-10-13
 
-No recording code. No audio upload in this stage. Browser audio samples are analyzed locally and discarded. Infrastructure metadata is outside that claim.
+- Node integration tests: ten concurrent joins accept exactly two; invalid session token rejected; leave releases capacity; TTL recovery; authenticated TURN configuration; proxy preserves capacity.
+- Chromium, three isolated sessions, synthetic microphone, local coturn TCP relay: two WebRTC sessions connected and received audio RTP in both directions. Third denied and its microphone stopped. After one participant left, the replacement connected.
+- Mute changes the real audio track; leave stops microphone tracks. Avatar reacts to audio. Permission denial, widths 320/390/1440 and reduced motion passed; no page JavaScript errors.
+- Build and syntax checks pass.
 
-## Audit — 2026-10-13
+These tests do not establish physical iPhone playback, production Vercel routes, public relay availability or Russia–Dubai connectivity. Public deployment is not claimed. GitHub push/API write return 403 despite owner-level repository permissions; local commits are not yet published. [Status](STATUS.md).
 
-Read both Drive Markdown handoffs and Project Archive, Claude Execution Handoff and source backup. Existing `main` head: `cc354a09bc8c681e7c1da26b1617b59157d4b481`; only README existed. GitHub reports push/admin access. Local clone failed because the configured proxy was unreachable; writes use the authorized GitHub API with an expected-head lease.
+## Version 2 only
 
-Existing Vercel project `one-line`: `prj_YUDyS3oOLUjmonNBIgdsHy1Ed1tX`. Deployment read returned 403 for team `team_DJwz0Obl3bTRiMY44onnjRGe`; Vercel CLI is absent. No deployment is claimed.
-
-Stage 1 validation: build and syntax checks passed; Chromium browser QA passed at 320/390/1440px, synthetic microphone amplitude response, mute, leave, permission denial and reduced motion; no page errors. Physical iPhone and real microphone are not yet tested. Vercel project read confirms live=false and latestDeployment=null.
+Family rooms up to 10 devices, persistent family links, subscriptions, shared prepaid balance and individual contributions are deferred until the minimal MVP is published and accepted. [v2 plan](docs/FAMILY_ROOMS_PLAN.md).
