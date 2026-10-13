@@ -20,6 +20,7 @@ export class DailyRoom {
    const response=await fetch('/api/daily/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({room:id}),signal:AbortSignal.timeout(25000)});
    const session=await response.json();logEvent('daily.session',{http:response.status,code:response.ok?'OK':session.error});
    if(!response.ok)throw new Error(session.error);
+   if(epoch!==this.epoch)return;this.prepared?.();logEvent('daily.room-created');
    this.stage?.('Загружаем звонок','Подключаем голосовой сервис.');await loadSdk();if(epoch!==this.epoch)return;
    const call=this.call=window.Daily.createCallObject({audioSource:true,videoSource:false});
    const update=()=>{if(this.call!==call)return;const participants=Object.values(call.participants());const self=participants.find(p=>p.local);this.session={id:self?.session_id};this.members(participants.map(p=>({id:p.session_id,name:p.local?'You':'Your guest'})));this.chatState(participants.length>1);this.status(participants.length>1?'Connected · Just talk.':'Waiting for your guest · Share this page link.');};
