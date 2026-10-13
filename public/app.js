@@ -1,3 +1,4 @@
+import { initLanguage } from './i18n.js';
 import { SessionClock } from './session-clock.js';
 import { DailyRoom } from './daily-voice.js';
 import { initTelegram } from './telegram.js';
@@ -56,3 +57,5 @@ document.getElementById('copy-diagnostics').onclick=async()=>{
 
 $('person-guest').onclick=()=>$('invite').click();
 $('more-places').onclick=()=>{$('places-info').hidden=!$('places-info').hidden;};
+
+initLanguage();
