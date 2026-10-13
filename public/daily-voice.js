@@ -40,7 +40,7 @@ export class DailyRoom {
  }
  mute(){this.muted=!this.muted;this.call?.setLocalAudio(!this.muted);return this.muted;}
  sendChat(text){text=text.trim().slice(0,1000);if(!text || !this.call || Object.values(this.call.participants()).length<2)return false;try{this.call.sendAppMessage({type:'chat',text},'*');this.chat(text,'self');return true;}catch{return false;}}
- async leave(){++this.epoch;this.hasJoined=false;const call=this.call;this.call=null;this.session=null;this.audio.pause();this.audio.srcObject=null;this.chatState(false);this.level({local:0,remote:0});this.muted=false;this.ended();if(call){try{await call.leave();}catch{}try{await call.destroy();}catch{}}}
+ async leave(){++this.epoch;this.hasJoined=false;const call=this.call;this.call=null;this.session=null;this.audio.pause();this.audio.srcObject=null;this.chatState(false);this.level({local:0,remote:0});this.muted=false;this.ended();if(call){for(const p of Object.values(call.participants?.() || {})){if(p.local)p.tracks?.audio?.persistentTrack?.stop();}const bounded=async operation=>{let timer;try{await Promise.race([Promise.resolve().then(operation),new Promise(resolve=>timer=setTimeout(resolve,this.cleanupTimeout || 2000))]);}catch{}finally{clearTimeout(timer);}};await bounded(()=>call.leave());await bounded(()=>call.destroy());}}
 }
 
 export function dailyErrorCode(error){

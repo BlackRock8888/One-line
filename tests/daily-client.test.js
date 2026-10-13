@@ -29,3 +29,12 @@ test('Daily structured errors retain meaningful safe reason without tokens',asyn
  assert.equal(dailyErrorCode({errorMsg:'microphone permission denied'}),'MICROPHONE_DENIED');
  assert.equal(dailyErrorCode({errorMsg:'unknown sensitive URL token=secret'}),'CALL_FAILED');
 });
+test('cleanup cannot hide failure forever when Daily leave/destroy hang',async()=>{
+ const old=globalThis.document;let ended=false,stopped=false;
+ globalThis.document={createElement:()=>({setAttribute(){},pause(){}}),body:{append(){}},getElementById:()=>null};
+ try{
+  const room=new DailyRoom({cleanupTimeout:10,ended:()=>ended=true,level(){},chatState(){}});
+  room.call={participants:()=>({local:{local:true,tracks:{audio:{persistentTrack:{stop(){stopped=true;}}}}}}),leave:()=>new Promise(()=>{}),destroy:()=>new Promise(()=>{})};
+  await room.leave();assert.equal(ended,true);assert.equal(stopped,true);assert.equal(room.call,null);
+ }finally{globalThis.document=old;}
+});
