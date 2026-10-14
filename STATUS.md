@@ -1,3 +1,6 @@
+# Update 2026-10-14
+Main path is now own WebRTC per-room (docs/FIRST_CALL_RUNBOOK_RU.md). Verified: two Chromium peers with fake mics, inbound audio both ways, chat, third denied, layouts 320-768. NOT verified: physical devices, Russia/UAE, TURN.
+
 # Black Rock Talk — execution status
 
 2026-10-13. Repository technical name remains One-line.

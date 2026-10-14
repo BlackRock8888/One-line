@@ -1,3 +1,4 @@
+// Two-browser WebRTC check with fake mics. npm i playwright-core; CH=<chromium path> BASE=http://127.0.0.1:3000 node scripts/e2e-call.mjs
 import { chromium } from 'playwright-core';
 const BASE = process.env.BASE || 'http://127.0.0.1:3111';
 const b = await chromium.launch({executablePath:process.env.CH,args:['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream','--disable-features=WebRtcHideLocalIpsWithMdns']});
