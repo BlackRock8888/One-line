@@ -18,7 +18,7 @@ test('two slots, authenticated signaling, leave and TTL recovery', () => {
   assert.equal(room.join().members.length,1);
 });
 test('concurrent HTTP join accepts exactly two; third cannot signal; leave frees a slot', async () => {
-  const server = createApp();
+  const server = createApp({room:new Room()});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
   const post = (action, body, token) => fetch(base+'/api/room/'+action,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body)});
@@ -36,7 +36,7 @@ test('concurrent HTTP join accepts exactly two; third cannot signal; leave frees
 test('authenticated TURN configuration and stateless Vercel proxy preserve the two-slot limit', async () => {
   const {proxy} = await import('../src/proxy.js');
   const {iceConfiguration} = await import('../src/ice.js');
-  const server = createApp({getIce:id=>iceConfiguration(id,{TURN_URLS:'["turns:example.com:443?transport=tcp"]',TURN_SECRET:'test-only'},0)});
+  const server = createApp({room:new Room(),getIce:id=>iceConfiguration(id,{TURN_URLS:'["turns:example.com:443?transport=tcp"]',TURN_SECRET:'test-only'},0)});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const origin=`http://127.0.0.1:${server.address().port}`;
   const post=(action,body={},token)=>proxy(new Request('https://talk.example.com'+action,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body)}),action,origin);
@@ -46,11 +46,42 @@ test('authenticated TURN configuration and stateless Vercel proxy preserve the t
     const b=await (await post('/api/room/join')).json();
     assert.equal((await post('/api/room/join')).status,409);
     const config=await (await post('/api/config',{id:a.id},a.token)).json();
-    assert.equal(config.iceServers[0].username,'3600:'+a.id);
-    assert.ok(config.iceServers[0].credential);
+    assert.equal(config.iceServers.at(-1).username,'3600:'+a.id);
+    assert.ok(config.iceServers.at(-1).credential);
     await post('/api/room/leave',{id:a.id},a.token);
     await post('/api/room/leave',{id:b.id},b.token);
     assert.equal((await proxy(new Request('https://talk.example.com/api/room/join',{method:'POST'}),'/api/room/join','')).status,503);
     assert.equal((await proxy(new Request('https://talk.example.com/api/room/join',{method:'POST',headers:{Origin:'https://other.example.com'}}),'/api/room/join',origin)).status,403);
   } finally {await new Promise(resolve=>server.close(resolve));}
+});
+
+test('rooms are isolated by random id; alone timeout is enforced on the server', async () => {
+  const { Rooms } = await import('../src/room.js');
+  let now = 0;
+  const rooms = new Rooms({now:()=>now, aloneMs:60000, idleMs:1000, ttl:1e9});
+  const a = rooms.create(), b = rooms.create();
+  assert.notEqual(a, b);
+  assert.match(a, /^[a-z0-9]{12}$/);
+  assert.throws(()=>rooms.get('nope'), /ROOM_NOT_FOUND/);
+  const ra = rooms.get(a), first = ra.join();
+  rooms.get(b).join(); rooms.get(b).join();
+  assert.equal(ra.join().members.length, 2);
+  assert.throws(()=>ra.join(), /ROOM_OCCUPIED/);
+  ra.leave(first.id, first.token);
+  now = 59000; ra.expire(); assert.equal(ra.members.size, 1);
+  now = 61000; ra.expire(); assert.equal(ra.members.size, 0);
+  now = 200000; rooms.sweep(); assert.throws(()=>rooms.get(a), /ROOM_NOT_FOUND/);
+});
+test('HTTP: create room, join by id, unknown room is 404', async () => {
+  const server = createApp();
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const post = (action, body) => fetch(base+'/api/room/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  try {
+    const { room } = await (await post('create',{})).json();
+    const rs = await Promise.all(Array.from({length:6},()=>post('join',{room})));
+    assert.equal(rs.filter(r=>r.status===200).length,2);
+    assert.equal((await post('join',{room:'unknown'})).status,404);
+    assert.equal((await post('join',{})).status,404);
+  } finally { await new Promise(resolve=>server.close(resolve)); }
 });

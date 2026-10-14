@@ -1,8 +1,13 @@
-import { randomUUID, timingSafeEqual } from 'node:crypto';
+import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 export class RoomError extends Error { constructor(code, status) { super(code); this.status = status; } }
 export class Room {
-  constructor({ now = Date.now, ttl = 45000 } = {}) { this.now = now; this.ttl = ttl; this.members = new Map(); }
-  expire() { for (const [id, member] of this.members) if (member.expires <= this.now()) this.members.delete(id); }
+  constructor({ now = Date.now, ttl = 45000, aloneMs = 0 } = {}) { this.now = now; this.ttl = ttl; this.aloneMs = aloneMs; this.aloneSince = null; this.members = new Map(); this.touched = now(); }
+  expire() {
+    const t = this.now();
+    for (const [id, member] of this.members) if (member.expires <= t) this.members.delete(id);
+    if (this.members.size === 1) { this.aloneSince ??= t; if (this.aloneMs && t - this.aloneSince >= this.aloneMs) this.members.clear(); } else this.aloneSince = null;
+    if (this.members.size) this.touched = t;
+  }
   view() { return [...this.members.values()].map(({id, name}) => ({id, name})); }
   join() {
     this.expire();
@@ -28,5 +33,24 @@ export class Room {
     peer.events.push({from:id, payload});
     return {ok:true};
   }
-  leave(id, token) { this.authenticate(id, token); this.members.delete(id); return {ok:true}; }
+  leave(id, token) { this.authenticate(id, token); this.members.delete(id); this.expire(); return {ok:true}; }
+}
+
+const ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
+export class Rooms {
+  constructor({ now = Date.now, ttl = 45000, aloneMs = 60000, idleMs = 120000, max = 500 } = {}) { Object.assign(this, {now, ttl, aloneMs, idleMs, max}); this.map = new Map(); }
+  sweep() { for (const [id, room] of this.map) { room.expire(); if (!room.members.size && this.now() - room.touched > this.idleMs) this.map.delete(id); } }
+  create() {
+    this.sweep();
+    if (this.map.size >= this.max) throw new RoomError('TRY_LATER', 429);
+    const bytes = randomBytes(12);
+    const id = Array.from(bytes, b => ALPHABET[b % ALPHABET.length]).join('');
+    this.map.set(id, new Room({now:this.now, ttl:this.ttl, aloneMs:this.aloneMs}));
+    return id;
+  }
+  get(id) {
+    const room = typeof id === 'string' ? this.map.get(id) : null;
+    if (!room) throw new RoomError('ROOM_NOT_FOUND', 404);
+    return room;
+  }
 }

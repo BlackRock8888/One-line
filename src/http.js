@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { dailySession } from './daily.js';
-import { Room, RoomError } from './room.js';
+import { Rooms, RoomError } from './room.js';
 const files = {'/':'index.html','/index.html':'index.html','/style.css':'style.css','/app.js':'app.js','/voice.js':'voice.js','/fox.svg':'fox.svg','/fox-neon.webp':'fox-neon.webp','/fonts/manrope-variable.ttf':'fonts/manrope-variable.ttf','/fonts/instrument-serif-italic.ttf':'fonts/instrument-serif-italic.ttf'};
 files['/vendor/daily-0.85.0.js'] = 'vendor/daily-0.85.0.js';
 files['/i18n.js'] = 'i18n.js';
@@ -10,8 +10,15 @@ files['/daily-voice.js'] = 'daily-voice.js';
 files['/telegram.js'] = 'telegram.js';
 files['/diagnostics.js'] = 'diagnostics.js';
 const types = {html:'text/html',css:'text/css',js:'text/javascript',svg:'image/svg+xml',webp:'image/webp',ttf:'font/ttf'};
-export function createApp({ room = new Room(), iceServers = [], getIce = () => ({iceServers}) } = {}) {
+export function createApp({ rooms = new Rooms(), room = null, iceServers = [], getIce = () => ({iceServers}) } = {}) {
   const attempts = new Map();
+  const rateLimit = ip => {
+    const now = Date.now();
+    for (const [key, value] of attempts) if (value.until <= now) attempts.delete(key);
+    const entry = attempts.get(ip) || {until:now + 60000, count:0};
+    if (++entry.count > 60) throw new RoomError('TRY_LATER',429);
+    attempts.set(ip, entry);
+  };
   return createServer(async (req, res) => {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('X-Content-Type-Options','nosniff');
@@ -29,20 +36,21 @@ export function createApp({ room = new Room(), iceServers = [], getIce = () => (
         let body;
         try { body = JSON.parse(data || '{}'); } catch { throw new RoomError('INVALID_JSON',400); }
         const action = url.pathname.slice('/api/room/'.length);
+        const target = () => room || rooms.get(body.room);
+        if (action === 'create') {
+          if (room) throw new RoomError('NOT_FOUND',404);
+          rateLimit(req.socket.remoteAddress);
+          json(200, {room: rooms.create()}); return;
+        }
         if (action === 'join') {
-          const ip = req.socket.remoteAddress;
-          const now = Date.now();
-          for (const [key, value] of attempts) if (value.until <= now) attempts.delete(key);
-          const entry = attempts.get(ip) || {until:now + 60000, count:0};
-          if (++entry.count > 30) throw new RoomError('TRY_LATER',429);
-          attempts.set(ip, entry);
-          json(200, room.join()); return;
+          rateLimit(req.socket.remoteAddress);
+          json(200, target().join()); return;
         }
         const token = req.headers.authorization?.replace(/^Bearer /,'') || body.token;
-        if (url.pathname === '/api/config') { room.authenticate(body.id, token); json(200, getIce(body.id)); return; }
-        if (action === 'poll') json(200, room.poll(body.id, token));
-        else if (action === 'signal') json(200, room.signal(body.id, token, body.target, body.payload));
-        else if (action === 'leave') json(200, room.leave(body.id, token));
+        if (url.pathname === '/api/config') { target().authenticate(body.id, token); json(200, getIce(body.id)); return; }
+        if (action === 'poll') json(200, target().poll(body.id, token));
+        else if (action === 'signal') json(200, target().signal(body.id, token, body.target, body.payload));
+        else if (action === 'leave') json(200, target().leave(body.id, token));
         else json(404,{error:'NOT_FOUND'});
         return;
       }

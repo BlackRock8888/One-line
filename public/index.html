@@ -2,70 +2,73 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
   <meta name="theme-color" content="#05060b">
-  <meta name="description" content="Black Rock Talk. Your people. A little closer.">
+  <meta name="description" content="Black Rock Talk — BLACKROCK LAB">
   <title>Black Rock Talk</title>
   <link rel="preload" href="/fonts/manrope-variable.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <div class="aurora" aria-hidden="true"></div>
-  <main>
-    <header class="site-header">
-      <a class="brand" href="/" aria-label="BlackRock Lab — Black Rock Talk home">
-        <span class="brand-name">BLACKROCK LAB</span>
-        <span class="brand-product">Black Rock Talk</span>
-      </a>
-      <select id="language" aria-label="Language"><option value="ru">Русский</option><option value="en">English</option><option value="ar">العربية</option></select>
-      <span class="edition"><span class="edition-line"></span> Midnight Aurora</span>
-    </header>
+  <div id="app" data-view="welcome" data-phase="idle">
 
-    <div class="experience">
-      <section class="hero" aria-labelledby="headline">
-        <div class="eyebrow"><span class="dot"></span> Made for your people</div>
-        <h1 id="headline">A little<br><em>closer.</em></h1>
-        <p class="intro">Some voices feel like home.<br>One link is all it takes to be there.</p>
-        <div class="principles" aria-label="Room features"><span>No accounts</span><span>Just your voices</span></div>
-      </section>
+    <section id="welcome" class="view" aria-labelledby="product">
+      <header class="bar">
+        <span class="brand">BLACKROCK LAB</span>
+        <select id="language" aria-label="Language"><option value="ru">RU</option><option value="en">EN</option><option value="ar">AR</option></select>
+      </header>
+      <div class="hero">
+        <div class="mark" aria-hidden="true"><div class="mark-glow"></div><img src="/fox-neon.webp" alt="" width="132" height="132"></div>
+        <h1 id="product">Black Rock Talk</h1>
+        <p class="tagline" data-i18n="tagline"></p>
+      </div>
+      <div class="action">
+        <button id="start" class="primary"><span id="start-label" data-i18n="create"></span></button>
+        <p id="start-note" class="note" role="status" aria-live="polite"></p>
+      </div>
+    </section>
 
-      <section class="room-card" aria-label="Voice room">
-        <div class="room-heading"><span id="flow-label">Готовы поговорить?</span><span class="room-label">Бесплатная комната</span><span class="capacity" id="capacity">0 / 2</span></div>
-        <div id="flow-feedback" role="status" aria-live="polite" hidden><span id="flow-icon" aria-hidden="true"></span><h2 id="flow-title"></h2><p id="flow-description"></p></div>
-        <div class="identity" aria-label="Your avatar">
-          <div class="avatar-stage">
-            <div class="orbit" aria-hidden="true"></div>
-            <div class="avatar" id="avatar"><img src="/fox-neon.webp" alt="Neon geometric fox" width="192" height="192"></div>
+    <section id="room" class="view" aria-label="Room" inert>
+      <header class="bar">
+        <span class="brand">BLACKROCK LAB</span>
+        <span id="timer" class="pill" role="timer"></span>
+        <button id="log-open" class="icon-text" data-i18n="log"></button>
+      </header>
+      <div class="stage">
+        <div class="seats">
+          <div class="seat" id="seat-self">
+            <div class="avatar" id="avatar"><img src="/fox-neon.webp" alt="" width="104" height="104"></div>
+            <b data-i18n="you"></b><small id="self-state"></small>
           </div>
-          <div class="identity-name"><span class="nickname">Quiet Fox</span><span class="identity-tag">Your voice identity</span></div>
+          <button class="seat" id="seat-guest" type="button">
+            <div class="avatar empty" id="guest-avatar"><span aria-hidden="true">+</span></div>
+            <b id="guest-name" data-i18n="invite"></b><small id="guest-state"></small>
+          </button>
         </div>
-        <div class="people" aria-label="Участники комнаты"><div class="person" id="person-self"><span class="person-symbol">◉</span><span>Вы</span><small id="self-state">Не подключены</small></div><button class="person" id="person-guest" disabled><span class="person-symbol">＋</span><span>Пригласить</span><small id="guest-state">Свободное место</small></button></div>
-        <button id="more-places" class="more-places">Больше мест?</button><p id="places-info" class="caption" hidden>Сейчас доступны 2 места. Семейная комната до 10 участников — следующая версия; подписка пока не подключена.</p>
-        <div class="room-action">
-          <button id="connect" class="primary"><span>Войти в комнату</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-          <div class="controls" id="controls" hidden>
-            <button id="mute" aria-pressed="false">Микрофон</button>
-            <button id="invite">Поделиться</button>
-            <button id="chat-toggle" aria-controls="chat-panel" aria-expanded="false">Чат</button>
-            <button id="leave" class="leave">Выйти</button>
-            <button id="enable-audio" class="audio-recovery" hidden>Enable audio</button>
-          </div>
-          <p class="caption" id="hint">Микрофон включится только после нажатия.</p>
+        <div class="invite" id="invite-box">
+          <input id="invite-link" readonly aria-label="Link">
+          <button id="copy-invite" data-i18n="copy"></button>
         </div>
-        <div id="invitation" hidden><label for="invite-link">Ссылка для приглашения</label><div class="invite-row"><input id="invite-link" readonly aria-label="Ссылка на комнату"><button id="copy-invite">Скопировать</button></div><p id="session-timer" role="timer" hidden></p></div>
-        <div class="status-line"><span class="status-dot" aria-hidden="true"></span><p id="status" role="status" aria-live="polite">Создайте комнату и пригласите близкого.</p></div>
-        <details id="diagnostics"><summary>Connection log</summary><pre id="connection-log" aria-live="polite">No connection attempts yet.</pre><button id="copy-diagnostics">Copy report</button><p class="caption">Technical events only. No audio or access keys.</p></details>
-      </section>
-    </div>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+        <button id="enable-audio" class="ghost" data-i18n="enableAudio" hidden></button>
+      </div>
+      <nav class="dock" aria-label="Controls">
+        <button id="mute" aria-pressed="false"><i class="ico ico-mic" aria-hidden="true"></i><span data-i18n="mute"></span></button>
+        <button id="invite"><i class="ico ico-share" aria-hidden="true"></i><span data-i18n="share"></span></button>
+        <button id="chat-toggle" aria-controls="chat-panel" aria-expanded="false"><i class="ico ico-chat" aria-hidden="true"></i><span data-i18n="chat"></span><em id="unread" hidden></em></button>
+        <button id="leave" class="leave"><i class="ico ico-leave" aria-hidden="true"></i><span data-i18n="leave"></span></button>
+      </nav>
+      <aside id="chat-panel" class="chat" aria-label="Chat" data-open="false" inert>
+        <div class="chat-head"><span data-i18n="chat"></span><button id="chat-close" data-i18n-label="chatClose" aria-label="Close chat">×</button></div>
+        <div id="chat-messages" role="log" aria-live="polite"></div>
+        <p id="chat-note" class="note" data-i18n="chatNote"></p>
+        <form id="chat-form"><input id="chat-input" maxlength="1000" autocomplete="off" enterkeyhint="send" data-i18n-ph="chatWait" aria-label="Message" disabled><button id="chat-send" data-i18n="send" disabled></button></form>
+      </aside>
+    </section>
 
-    <footer><span class="footer-note"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 7 3v6c0 4-7 9-7 9s-7-5-7-9V6l7-3Z" stroke="currentColor" stroke-width="1.4"/></svg>No recordings. Just the moment.</span><span class="footer-signature">Less distance. More voice.<span aria-hidden="true">✦</span></span></footer>
-  </main>
-  <aside id="chat-panel" class="chat-panel" aria-label="Room chat" hidden>
-    <div class="chat-heading"><span>Room chat</span><button id="chat-close" aria-label="Close chat">×</button></div>
-    <p class="caption">Only this session. History disappears when it ends.</p>
-    <div id="chat-messages" role="log" aria-live="polite"></div>
-    <form id="chat-form"><label class="chat-label" for="chat-input">Message</label><input id="chat-input" maxlength="1000" placeholder="Waiting for your guest…" autocomplete="off" disabled><button id="chat-send" disabled>Send</button></form>
-  </aside>
+    <dialog id="log-dialog"><div class="log-head"><b data-i18n="logTitle"></b><button id="log-close" data-i18n="close"></button></div><pre id="connection-log" tabindex="0"></pre><p class="note" data-i18n="logNote"></p><button id="copy-diagnostics" data-i18n="logCopy"></button></dialog>
+  </div>
   <script type="module" src="/app.js"></script>
 </body>
 </html>
